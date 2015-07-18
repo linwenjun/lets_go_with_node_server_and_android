@@ -8,7 +8,6 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.BaseAdapter;
 import android.widget.Button;
-import android.widget.GridView;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -21,7 +20,8 @@ import thoughtworks.academy.letsgoandroid.bean.Good;
 
 public class MainActivity extends Activity {
 
-    GridView gridView;
+    RefreshGridView gridView;
+    TextView header;
     List<Good> goodList;
     int[] images = new int[] {R.mipmap.good_01, R.mipmap.good_02, R.mipmap.good_03, R.mipmap.good_04};
 
@@ -31,7 +31,14 @@ public class MainActivity extends Activity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        gridView = (GridView) findViewById(R.id.grid_view);
+        gridView = (RefreshGridView) findViewById(R.id.grid_view);
+        header = (TextView) findViewById(R.id.list_header);
+
+        measureView(header);
+        header.setPadding(0, 0, 0, 0);
+//        Log.i("height", header.getMeasuredHeight() + "");
+//        header.setPadding(0, -1 * header.getMeasuredHeight(), 0, 0);
+
         goodList = new ArrayList<>();
 
         for(int i=0; i<20; i++) {
@@ -40,6 +47,25 @@ public class MainActivity extends Activity {
 
         gridView.setAdapter(new MyGoodGridAdapter(getApplicationContext(), goodList));
 
+    }
+
+    private void measureView(View child) {
+        ViewGroup.LayoutParams params = child.getLayoutParams();
+        if(null == params) {
+            params = new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT);
+        }
+
+        int childWidthSpec = ViewGroup.getChildMeasureSpec(0, 0, params.width);
+        int lpHeight = params.height;
+        int childHeightSpec;
+        if(lpHeight > 0) {
+            childHeightSpec = View.MeasureSpec.makeMeasureSpec(lpHeight, View.MeasureSpec.EXACTLY);
+        } else {
+            childHeightSpec = View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED);
+        }
+
+        child.measure(childWidthSpec, childHeightSpec);
     }
 
     class MyGoodGridAdapter extends BaseAdapter {
@@ -69,26 +95,41 @@ public class MainActivity extends Activity {
 
         @Override
         public View getView(int i, View view, ViewGroup viewGroup) {
-            View rootView = layoutInflater.inflate(R.layout.item_good, null);
-            ImageView goodImage = (ImageView) rootView.findViewById(R.id.good_img);
-            TextView goodName = (TextView) rootView.findViewById(R.id.good_name);
-            TextView goodPrice = (TextView) rootView.findViewById(R.id.good_price);
-            Button buyBtn = (Button) rootView.findViewById(R.id.button_buy);
 
-            buyBtn.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View view) {
-                    Toast.makeText(getApplicationContext(), "已经添加至购物车", Toast.LENGTH_SHORT).show();
-                }
-            });
+            ViewHolder viewHolder = null;
+
+            if(view == null) {
+                viewHolder = new ViewHolder();
+                view = layoutInflater.inflate(R.layout.item_good, null);
+                viewHolder.goodImage = (ImageView) view.findViewById(R.id.good_img);
+                viewHolder.goodName = (TextView) view.findViewById(R.id.good_name);
+                viewHolder.goodPrice = (TextView) view.findViewById(R.id.good_price);
+
+                Button buyBtn = (Button) view.findViewById(R.id.button_buy);
+                buyBtn.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View view) {
+                        Toast.makeText(getApplicationContext(), "已经添加至购物车", Toast.LENGTH_SHORT).show();
+                    }
+                });
+
+                view.setTag(viewHolder);
+            } else {
+                viewHolder = (ViewHolder) view.getTag();
+            }
 
             Good g = goodList.get(i);
-            goodImage.setImageResource(g.imgSrcId);
-            goodName.setText(g.name);
-            goodPrice.setText("$" + g.price + ".00");
+            viewHolder.goodImage.setImageResource(g.imgSrcId);
+            viewHolder.goodName.setText(g.name);
+            viewHolder.goodPrice.setText("$" + g.price + ".00");
 
+            return view;
+        }
 
-            return rootView;
+        private class ViewHolder {
+            ImageView goodImage;
+            TextView goodName;
+            TextView goodPrice;
         }
     }
 }
